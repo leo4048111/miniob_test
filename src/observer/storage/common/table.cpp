@@ -68,8 +68,8 @@ RC Table::create(
 
   RC rc = RC::SUCCESS;
 
-  // 使用 table_name.table记录一个表的元数据
-  // 判断表文件是否已经存在
+  // 使用 table_name.table记录一�?表的元数�?
+  // 判断表文件是否已经存�?
   int fd = ::open(path, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
   if (fd < 0) {
     if (EEXIST == errno) {
@@ -95,7 +95,7 @@ RC Table::create(
     return RC::IOERR;
   }
 
-  // 记录元数据到文件中
+  // 记录元数�?到文件中
   table_meta_.serialize(fs);
   fs.close();
 
@@ -122,7 +122,7 @@ RC Table::create(
 
 RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_manager)
 {
-  // 加载元数据文件
+  // 加载元数�?文件
   std::fstream fs;
   std::string meta_file_path = std::string(base_dir) + common::FILE_PATH_SPLIT_STR + meta_file;
   fs.open(meta_file_path, std::ios_base::in | std::ios_base::binary);
@@ -332,7 +332,7 @@ const TableMeta &Table::table_meta() const
 
 RC Table::make_record(int value_num, const Value *values, char *&record_out)
 {
-  // 检查字段类型是否一致
+  // 检查字段类型是否一�?
   if (value_num + table_meta_.sys_field_num() != table_meta_.field_num()) {
     LOG_WARN("Input values don't match the table's schema, table name:%s", table_meta_.name());
     return RC::SCHEMA_FIELD_MISSING;
@@ -352,7 +352,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
     }
   }
 
-  // 复制所有字段的值
+  // 复制所有字段的�?
   int record_size = table_meta_.record_size();
   char *record = new char[record_size];
 
@@ -407,7 +407,7 @@ RC Table::get_record_scanner(RecordFileScanner &scanner)
 }
 
 /**
- * 为了不把Record暴露出去，封装一下
+ * 为了不把Record暴露出去，封装一�?
  */
 class RecordReaderScanAdapter {
 public:
@@ -529,6 +529,42 @@ RC Table::scan_record_by_index(Trx *trx, IndexScanner *scanner, ConditionFilter 
   return rc;
 }
 
+RC Table::destroy(const char* dir) {
+    RC rc = sync();//ˢ��������ҳ
+
+    if(rc != RC::SUCCESS) return rc;
+
+    std::string path = table_meta_file(dir, name());
+    if(unlink(path.c_str()) != 0) {
+        LOG_ERROR("Failed to remove meta file=%s, errno=%d", path.c_str(), errno);
+        return RC::GENERIC_ERROR;
+    }
+
+    std::string data_file = std::string(dir) + "/" + name() + TABLE_DATA_SUFFIX;
+    if(unlink(data_file.c_str()) != 0) { // ɾ��������Ԫ���ݵ��ļ�
+        LOG_ERROR("Failed to remove data file=%s, errno=%d", data_file.c_str(), errno);
+        return RC::GENERIC_ERROR;
+    }
+
+    std::string text_data_file = std::string(dir) + "/" + name() + TABLE_TEXT_DATA_SUFFIX;
+    if(unlink(text_data_file.c_str()) != 0) { // ɾ����ʵ��text�ֶε������ļ�������ʵ����text caseʱ��Ҫ���ǣ��ʼ���Բ���������߼���
+        LOG_ERROR("Failed to remove text data file=%s, errno=%d", text_data_file.c_str(), errno);
+        return RC::GENERIC_ERROR;
+    }
+
+    const int index_num = table_meta_.index_num();
+    for (int i = 0; i < index_num; i++) {  // �������е���������ļ�����������Ԫ����
+        ((BplusTreeIndex*)indexes_[i])->close();
+        const IndexMeta* index_meta = table_meta_.index(i);
+        std::string index_file = index_data_file(dir, name(), index_meta->name());
+        if(unlink(index_file.c_str()) != 0) {
+            LOG_ERROR("Failed to remove index file=%s, errno=%d", index_file.c_str(), errno);
+            return RC::GENERIC_ERROR;
+        }
+    }
+    return RC::SUCCESS;
+}
+
 class IndexInserter {
 public:
   explicit IndexInserter(Index *index) : index_(index)
@@ -585,7 +621,7 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     return rc;
   }
 
-  // 遍历当前的所有数据，插入这个索引
+  // 遍历当前的所有数�?，插入这�?索引
   IndexInserter index_inserter(index);
   rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
   if (rc != RC::SUCCESS) {
@@ -602,13 +638,13 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     LOG_ERROR("Failed to add index (%s) on table (%s). error=%d:%s", index_name, name(), rc, strrc(rc));
     return rc;
   }
-  // 创建元数据临时文件
+  // 创建元数�?临时文件
   std::string tmp_file = table_meta_file(base_dir_.c_str(), name()) + ".tmp";
   std::fstream fs;
   fs.open(tmp_file, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
   if (!fs.is_open()) {
     LOG_ERROR("Failed to open file for write. file name=%s, errmsg=%s", tmp_file.c_str(), strerror(errno));
-    return RC::IOERR;  // 创建索引中途出错，要做还原操作
+    return RC::IOERR;  // 创建索引�?途出错，要做还原操作
   }
   if (new_table_meta.serialize(fs) < 0) {
     LOG_ERROR("Failed to dump new table meta to file: %s. sys err=%d:%s", tmp_file.c_str(), errno, strerror(errno));
@@ -616,7 +652,7 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
   }
   fs.close();
 
-  // 覆盖原始元数据文件
+  // 覆盖原�?�元数据文件
   std::string meta_file = table_meta_file(base_dir_.c_str(), name());
   int ret = rename(tmp_file.c_str(), meta_file.c_str());
   if (ret != 0) {
@@ -690,7 +726,7 @@ RC Table::delete_record(Trx *trx, Record *record)
 {
   RC rc = RC::SUCCESS;
   
-  rc = delete_entry_of_indexes(record->data(), record->rid(), false);  // 重复代码 refer to commit_delete
+  rc = delete_entry_of_indexes(record->data(), record->rid(), false);  // 重�?�代�? refer to commit_delete
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to delete indexes of record (rid=%d.%d). rc=%d:%s",
                 record->rid().page_num, record->rid().slot_num, rc, strrc(rc));
@@ -904,7 +940,7 @@ IndexScanner *Table::find_index_for_scan(const ConditionFilter *filter)
     for (int i = 0; i < filter_num; i++) {
       IndexScanner *scanner = find_index_for_scan(&composite_condition_filter->filter(i));
       if (scanner != nullptr) {
-        return scanner;  // 可以找到一个最优的，比如比较符号是=
+        return scanner;  // �?以找到一�?最优的，比如比较�?�号�?=
       }
     }
   }

@@ -71,7 +71,7 @@ bool DefaultStorageStage::set_properties()
   std::string stageNameStr(stage_name_);
   std::map<std::string, std::string> section = get_properties()->get(stageNameStr);
 
-  // 初始化时打开默认的database，没有的话会自动创建
+  // 初�?�化时打开默�?�的database，没有的话会�?动创�?
   std::map<std::string, std::string>::iterator iter = section.find(CONF_BASE_DIR);
   if (iter == section.end()) {
     LOG_ERROR("Config cannot be empty: %s", CONF_BASE_DIR);
@@ -160,13 +160,22 @@ void DefaultStorageStage::handle_event(StageEvent *event)
   switch (sql->flag) {
     case SCF_LOAD_DATA: {
       /*
-        从文件导入数据，如果做性能测试，需要保持这些代码可以正常工作
+        从文件�?�入数据，�?�果做性能测试，需要保持这些代码可以�?�常工作
         load data infile `your/file/path` into table `table-name`;
        */
       const char *table_name = sql->sstr.load_data.relation_name;
       const char *file_name = sql->sstr.load_data.file_name;
       std::string result = load_data(dbname, table_name, file_name);
       snprintf(response, sizeof(response), "%s", result.c_str());
+    } break;
+    case SCF_DROP_TABLE: {
+      const DropTable &drop_table = sql->sstr[sql->q_size - 1].drop_table;  // 拿到要drop 的表
+      rc = handler_->drop_table(
+          current_db, drop_table.relation_name);  // 调用drop table接口，drop table要在handler中实现
+      snprintf(response,
+          sizeof(response),
+          "%s\n",
+          rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");  // 返回结果，带不带换行符都可以
     } break;
     default:
       snprintf(response, sizeof(response), "Unsupported sql: %d\n", sql->flag);
@@ -195,11 +204,11 @@ void DefaultStorageStage::callback_event(StageEvent *event, CallbackContext *con
 }
 
 /**
- * 从文件中导入数据时使用。尝试向表中插入解析后的一行数据。
- * @param table  要导入的表
- * @param file_values 从文件中读取到的一行数据，使用分隔符拆分后的几个字段值
- * @param record_values Table::insert_record使用的参数，为了防止频繁的申请内存
- * @param errmsg 如果出现错误，通过这个参数返回错误信息
+ * 从文件中导入数据时使用。尝试向表中插入解析后的一行数�?�?
+ * @param table  要�?�入的表
+ * @param file_values 从文件中读取到的一行数�?，使用分隔�?�拆分后的几�?字�?��?
+ * @param record_values Table::insert_record使用的参数，为了防�?��?�繁的申请内�?
+ * @param errmsg 如果出现错�??，通过这个参数返回错�??信息
  * @return 成功返回RC::SUCCESS
  */
 RC insert_record_from_file(
@@ -226,7 +235,7 @@ RC insert_record_from_file(
 
     switch (field->type()) {
       case INTS: {
-        deserialize_stream.clear();  // 清理stream的状态，防止多次解析出现异常
+        deserialize_stream.clear();  // 清理stream的状态，防�?��?��?�解析出现异�?
         deserialize_stream.str(file_value);
 
         int int_value;

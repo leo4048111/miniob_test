@@ -37,22 +37,22 @@ public:
   ~Table();
 
   /**
-   * 创建一个表
-   * @param path 元数据保存的文件(完整路径)
+   * 创建一�?�?
+   * @param path 元数�?保存的文�?(完整�?�?)
    * @param name 表名
-   * @param base_dir 表数据存放的路径
-   * @param attribute_count 字段个数
-   * @param attributes 字段
-   * @param clog_manager clog管理器，用于维护redo log
+   * @param base_dir 表数�?存放的路�?
+   * @param attribute_count 字�?�个�?
+   * @param attributes 字�??
+   * @param clog_manager clog管理�?，用于维�?redo log
    */
   RC create(const char *path, const char *name, const char *base_dir, int attribute_count, const AttrInfo attributes[],
       CLogManager *clog_manager);
 
   /**
-   * 打开一个表
-   * @param meta_file 保存表元数据的文件完整路径
-   * @param base_dir 表所在的文件夹，表记录数据文件、索引数据文件存放位置
-   * @param clog_manager clog管理器
+   * 打开一�?�?
+   * @param meta_file 保存表元数据的文件完整路�?
+   * @param base_dir 表所在的文件夹，表�?�录数据文件、索引数�?文件存放位置
+   * @param clog_manager clog管理�?
    */
   RC open(const char *meta_file, const char *base_dir, CLogManager *clog_manager);
 
@@ -69,6 +69,8 @@ public:
   RC create_index(Trx *trx, const char *index_name, const char *attribute_name);
 
   RC get_record_scanner(RecordFileScanner &scanner);
+
+  RC destroy(const char* dir);
 
   RecordFileHandler *record_handler() const
   {

@@ -50,7 +50,7 @@ DefaultHandler::~DefaultHandler() noexcept
 
 RC DefaultHandler::init(const char *base_dir)
 {
-  // æ£€æŸ¥ç›®å½•æ˜¯å¦å­˜åœ¨ï¼Œæˆ–è€…åˆ›å»º
+  // æ£€æŸ¥ç›®å½•æ˜¯å¦å­˜åœ?ï¼Œæˆ–è€…åˆ›å»?
   std::string tmp(base_dir);
   tmp += "/db";
   if (!common::check_directory(tmp)) {
@@ -82,7 +82,7 @@ RC DefaultHandler::create_db(const char *dbname)
     return RC::INVALID_ARGUMENT;
   }
 
-  // å¦‚æœå¯¹åº”åå½•å·²ç»å­˜åœ¨ï¼Œè¿”å›é”™è¯¯
+  // å¦‚æœå¯¹åº”åå½•å·²ç»å­˜åœ¨ï¼Œè¿”å›é”™è¯?
   std::string dbpath = db_dir_ + dbname;
   if (common::is_directory(dbpath.c_str())) {
     LOG_WARN("Db already exists: %s", dbname);
@@ -151,9 +151,12 @@ RC DefaultHandler::create_table(
   return db->create_table(relation_name, attribute_count, attributes);
 }
 
-RC DefaultHandler::drop_table(const char *dbname, const char *relation_name)
-{
-  return RC::GENERIC_ERROR;
+RC DefaultHandler::drop_table(const char *dbname, const char *relation_name) {
+  Db *db = find_db(dbname);  // ÕâÊÇÔ­ÓĞµÄ´úÂë£¬ÓÃÀ´²éÕÒ¶ÔÓ¦µÄÊı¾İ¿â£¬²»¹ıÄ¿Ç°Ö»ÓĞÒ»¸ö¿â
+  if(db == nullptr) {
+    return RC::SCHEMA_DB_NOT_OPENED;
+  }
+  return db->drop_table(relation_name); // Ö±½Óµ÷ÓÃdbµÄÉ¾µô½Ó¿Ú
 }
 
 RC DefaultHandler::create_index(

@@ -69,7 +69,7 @@ RC Db::create_table(const char *table_name, int attribute_count, const AttrInfo 
     return RC::SCHEMA_TABLE_EXIST;
   }
 
-  // 鏂囦欢璺緞鍙互绉诲埌Table妯″潡
+  // 鏂囦欢璺?寰勫彲浠ョЩ鍒癟able妯″潡
   std::string table_file_path = table_meta_file(path_.c_str(), table_name);
   Table *table = new Table();
   rc = table->create(table_file_path.c_str(), table_name, path_.c_str(), attribute_count, attributes, get_clog_manager());
@@ -91,6 +91,22 @@ Table *Db::find_table(const char *table_name) const
     return iter->second;
   }
   return nullptr;
+}
+
+RC Db::drop_table(const char* table_name)
+{
+    auto it = opened_tables_.find(table_name);
+    if (it == opened_tables_.end())
+    {
+        return SCHEMA_TABLE_NOT_EXIST; // 找不到表，要返回错误，测试程序中也会校验这种场景
+    }
+    Table* table = it->second;
+    RC rc = table->destroy(path_.c_str()); // 让表自己销毁资源
+    if(rc != RC::SUCCESS) return rc;
+
+    opened_tables_.erase(it); // 删除成功的话，从表list中将它删除
+    delete table;
+    return RC::SUCCESS;
 }
 
 RC Db::open_all_tables()
