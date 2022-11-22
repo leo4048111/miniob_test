@@ -169,8 +169,9 @@ void ExecuteStage::handle_request(common::StageEvent *event)
     case SCF_DESC_TABLE: {
       do_desc_table(sql_event);
     } break;
-
-    case SCF_DROP_TABLE:
+    case SCF_DROP_TABLE: {
+      do_drop_table(sql_event);
+    } break;
     case SCF_DROP_INDEX:
     case SCF_LOAD_DATA: {
       default_storage_stage_->handle_event(event);
@@ -275,10 +276,10 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
     return nullptr;
   }
 
-  // 在所有过滤条件中，找到字段与值做比较的条件，然后判断字段是否可以使用索引
-  // 如果是多列索引，这里的处理需要更复杂。
-  // 这里的查找规则是比较简单的，就是尽量找到使用相等比较的索引
-  // 如果没有就找范围比较的，但是直接排除不等比较的索引查询. (你知道为什么?)
+  // 在所有过滤条件中，找到字段与值做比较的条件，然后判断字�?�是否可以使用索�?
+  // 如果�?多列索引，这里的处理需要更复杂�?
+  // 这里的查找�?�则�?比较简单的，就�?尽量找到使用相等比较的索�?
+  // 如果没有就找范围比较的，但是直接排除不等比较的索引查�?. (你知道为什�??)
   const FilterUnit *better_filter = nullptr;
   for (const FilterUnit * filter_unit : filter_units) {
     if (filter_unit->comp() == NOT_EQUAL) {
@@ -477,6 +478,21 @@ RC ExecuteStage::do_create_table(SQLStageEvent *sql_event)
   }
   return rc;
 }
+
+RC ExecuteStage::do_drop_table(SQLStageEvent *sql_event)
+{
+  const DropTable &drop_table = sql_event->query()->sstr.drop_table;
+  SessionEvent *session_event = sql_event->session_event();
+  Db *db = session_event->session()->get_current_db();
+  RC rc = db->drop_table(drop_table.relation_name);
+  if (rc == RC::SUCCESS) {
+    session_event->set_response("SUCCESS\n");
+  } else {
+    session_event->set_response("FAILURE\n");
+  }
+  return rc;
+}
+
 RC ExecuteStage::do_create_index(SQLStageEvent *sql_event)
 {
   SessionEvent *session_event = sql_event->session_event();
