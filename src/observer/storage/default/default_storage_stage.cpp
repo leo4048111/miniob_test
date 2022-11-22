@@ -169,9 +169,9 @@ void DefaultStorageStage::handle_event(StageEvent *event)
       snprintf(response, sizeof(response), "%s", result.c_str());
     } break;
     case SCF_DROP_TABLE: {
-      const DropTable &drop_table = sql->sstr[sql->q_size - 1].drop_table;  // 拿到要drop 的表
+      const DropTable &drop_table = sql->sstr.drop_table;  // 拿到要drop 的表
       rc = handler_->drop_table(
-          current_db, drop_table.relation_name);  // 调用drop table接口，drop table要在handler中实现
+          dbname, drop_table.relation_name);  // 调用drop table接口，drop table要在handler中实现
       snprintf(response,
           sizeof(response),
           "%s\n",
