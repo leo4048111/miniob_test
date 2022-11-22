@@ -556,7 +556,7 @@ RC Table::destroy(const char* dir) {
     for (int i = 0; i < index_num; i++) {  // 清理所有的索引相关文件数据与索引元数据
         ((BplusTreeIndex*)indexes_[i])->close();
         const IndexMeta* index_meta = table_meta_.index(i);
-        std::string index_file = index_data_file(dir, name(), index_meta->name());
+        std::string index_file = table_index_file(dir, name(), index_meta->name());
         if(unlink(index_file.c_str()) != 0) {
             LOG_ERROR("Failed to remove index file=%s, errno=%d", index_file.c_str(), errno);
             return RC::GENERIC_ERROR;
